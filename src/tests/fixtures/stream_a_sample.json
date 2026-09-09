@@ -1,0 +1,28 @@
+[
+  {"app_id": "medusa", "ts": "2026-08-22T19:59:40Z", "window_sec": 10,
+   "performance": {"p50_latency_ms": 175, "p95_latency_ms": 400, "p99_latency_ms": 580,
+                    "throughput_rps": 300, "error_rate_pct": 1.0,
+                    "cpu_utilization_pct": 58, "memory_utilization_pct": 53, "queue_depth": 10},
+   "cost": {"hourly_compute_cost_usd": 0.09},
+   "security": {"failed_auth_attempts_per_min": 0, "anomalous_ip_request_rate": 0.0},
+   "scaling": {"current_replica_count": 2, "cold_start_time_ms": 0},
+   "recovery": {"restart_count": 0, "health_check_failure_rate_pct": 0.0}},
+
+  {"app_id": "medusa", "ts": "2026-08-22T19:59:50Z", "window_sec": 10,
+   "performance": {"p50_latency_ms": 210, "p95_latency_ms": 520, "p99_latency_ms": 700,
+                    "throughput_rps": 340, "error_rate_pct": 1.4,
+                    "cpu_utilization_pct": 66, "memory_utilization_pct": 55, "queue_depth": 18},
+   "cost": {"hourly_compute_cost_usd": 0.10},
+   "security": {"failed_auth_attempts_per_min": 0, "anomalous_ip_request_rate": 0.0},
+   "scaling": {"current_replica_count": 2, "cold_start_time_ms": 0},
+   "recovery": {"restart_count": 0, "health_check_failure_rate_pct": 0.0}},
+
+  {"app_id": "medusa", "ts": "2026-08-22T20:00:00Z", "window_sec": 10,
+   "performance": {"p50_latency_ms": 420, "p95_latency_ms": 1380, "p99_latency_ms": 2100,
+                    "throughput_rps": 480, "error_rate_pct": 5.4,
+                    "cpu_utilization_pct": 94, "memory_utilization_pct": 78, "queue_depth": 142},
+   "cost": {"hourly_compute_cost_usd": 0.18},
+   "security": {"failed_auth_attempts_per_min": 0, "anomalous_ip_request_rate": 0.0},
+   "scaling": {"current_replica_count": 2, "cold_start_time_ms": 3200},
+   "recovery": {"restart_count": 0, "health_check_failure_rate_pct": 0.0}}
+]

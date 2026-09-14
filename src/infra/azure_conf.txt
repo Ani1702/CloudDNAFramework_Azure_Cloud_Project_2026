@@ -1,0 +1,100 @@
+#!/bin/bash
+set -e   # stop immediately if any command fails, rather than continuing with a broken setup
+
+# ---- Config — edit once, reused everywhere below ----
+RG="azure-cloud-dna-rg"
+LOCATION="centralindia"
+SUFFIX=13986                         # keeps resource names globally unique
+COSMOS_NAME="clouddna-cosmos-$SUFFIX"
+STORAGE_NAME="clouddnafuncstore$SUFFIX"  # no hyphens allowed in storage account names
+FUNCAPP_NAME="clouddna-decision-action-$SUFFIX"
+KV_NAME="clouddna-kv-$SUFFIX"
+YOUR_EMAIL="aniruddhaneema@gmail.com"
+NVIDIA_API_KEY="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"
+
+echo "Resource suffix for this deployment: $SUFFIX  (save this somewhere)"
+
+# ---- Resource group — everyone deploys into this ----
+az group create --name $RG --location $LOCATION
+
+
+# ---- Cosmos DB — provisioned mode + free tier (serverless and free tier are mutually exclusive) ----
+az cosmosdb create --name $COSMOS_NAME --resource-group $RG \
+  --locations regionName=$LOCATION \
+  --enable-free-tier true \
+  --default-consistency-level Session
+
+az cosmosdb sql database create --account-name $COSMOS_NAME \
+  --resource-group $RG --name clouddna
+
+for c in baselines trigger_events candidate_evaluations genome_library fitness_weights app_registry; do
+  az cosmosdb sql container create --account-name $COSMOS_NAME \
+    --resource-group $RG --database-name clouddna \
+    --name $c --partition-key-path /app_id --throughput 400
+done
+
+# ---- Storage account required by any Function App ----
+az storage account create --name $STORAGE_NAME --resource-group $RG \
+  --sku Standard_LRS --location $LOCATION
+
+az functionapp create --name $FUNCAPP_NAME --resource-group $RG \
+  --storage-account $STORAGE_NAME \
+  --consumption-plan-location $LOCATION \
+  --os-type Linux \
+  --runtime python \
+  --runtime-version 3.11 \
+  --functions-version 4
+
+# ---- The three Event Grid topics that ARE the integration contract with Member 1 and Member 2 ----
+az eventgrid topic create --name cdna-stream-a-metrics --resource-group $RG --location $LOCATION
+az eventgrid topic create --name cdna-trigger-events --resource-group $RG --location $LOCATION
+az eventgrid topic create --name cdna-candidate-results --resource-group $RG --location $LOCATION
+
+# ---- Key Vault for secrets ----
+if ! az keyvault show --name "$KV_NAME" --resource-group "$RG" &>/dev/null; then
+    az keyvault create \
+      --name "$KV_NAME" \
+      --resource-group "$RG" \
+      --location "$LOCATION" \
+      --enable-rbac-authorization true
+fi
+
+az keyvault secret set \
+  --vault-name "$KV_NAME" \
+  --name NVIDIA-API-KEY \
+  --value "$NVIDIA_API_KEY"
+
+az keyvault secret set \
+  --vault-name "$KV_NAME" \
+  --name COSMOS-CONN-STR \
+  --value "$(az cosmosdb keys list \
+    --name "$COSMOS_NAME" \
+    --resource-group "$RG" \
+    --type connection-strings \
+    --query 'connectionStrings[0].connectionString' \
+    -o tsv)"
+
+# ---- Let the Function App actually read those secrets ----
+az functionapp identity assign --name $FUNCAPP_NAME --resource-group $RG
+FUNC_PRINCIPAL_ID=$(az functionapp identity show --name $FUNCAPP_NAME --resource-group $RG --query principalId -o tsv)
+KV_ID=$(az keyvault show \
+  --name "$KV_NAME" \
+  --resource-group "$RG" \
+  --query id -o tsv)
+
+az role assignment create \
+  --assignee "$FUNC_PRINCIPAL_ID" \
+  --role "Key Vault Secrets User" \
+  --scope "$KV_ID"
+
+# ---- Print everything you'll need for local.settings.json ----
+echo ""
+echo "===== Values for local.settings.json ====="
+echo "COSMOS_CONN_STR: $(az cosmosdb keys list --name $COSMOS_NAME --resource-group $RG --type connection-strings --query 'connectionStrings[0].connectionString' -o tsv)"
+echo "STREAM_A_TOPIC_ENDPOINT: $(az eventgrid topic show --name cdna-stream-a-metrics -g $RG --query endpoint -o tsv)"
+echo "STREAM_A_TOPIC_KEY: $(az eventgrid topic key list --name cdna-stream-a-metrics -g $RG --query key1 -o tsv)"
+echo "TRIGGER_EVENTS_TOPIC_ENDPOINT: $(az eventgrid topic show --name cdna-trigger-events -g $RG --query endpoint -o tsv)"
+echo "TRIGGER_EVENTS_TOPIC_KEY: $(az eventgrid topic key list --name cdna-trigger-events -g $RG --query key1 -o tsv)"
+echo "CANDIDATE_RESULTS_TOPIC_ENDPOINT: $(az eventgrid topic show --name cdna-candidate-results -g $RG --query endpoint -o tsv)"
+echo "CANDIDATE_RESULTS_TOPIC_KEY: $(az eventgrid topic key list --name cdna-candidate-results -g $RG --query key1 -o tsv)"
+echo "============================================"

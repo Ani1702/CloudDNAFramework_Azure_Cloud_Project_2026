@@ -10,7 +10,7 @@ STORAGE_NAME="clouddnafuncstore$SUFFIX"  # no hyphens allowed in storage account
 FUNCAPP_NAME="clouddna-decision-action-$SUFFIX"
 KV_NAME="clouddna-kv-$SUFFIX"
 YOUR_EMAIL="aniruddhaneema@gmail.com"
-NVIDIA_API_KEY="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"
+NVIDIA_API_KEY="<MY_API_KEY>"
 
 echo "Resource suffix for this deployment: $SUFFIX  (save this somewhere)"
 

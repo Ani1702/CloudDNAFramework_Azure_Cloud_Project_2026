@@ -1,0 +1,57 @@
+{
+  "app_id": "medusa",
+  "trigger_id": "trig-20260915-001", 
+  "timestamp": "2026-09-15T12:00:00Z",
+  "trigger_category": "TRAFFIC_SPIKE",
+  "severity": "HIGH",
+  "forecasted_load": {
+    "throughput_rps_at_eval_end": 480.0,
+    "method": "linear_extrapolation"
+  },
+  "fingerprint_vector": [0.85, 0.35, 0.05, 0.70, 0.00],
+  "fingerprint_version": "v1",
+  "current_production_config": {
+    "cpu_cores": 1.0,
+    "memory_gb": 1.0,
+    "replica_count": 2,
+    "node_thread_pool_size": 20,
+    "redis_cache_enabled": false,
+    "redis_cache_ttl_seconds": 0,
+    "rate_limiting_enabled": false,
+    "rate_limit_rps": 100,
+    "db_connection_pool_max": 10,
+    "health_check_timeout_sec": 2
+  },
+  "deviated_metrics": {
+    "performance": {
+      "p50_latency_ms": 280.0,
+      "p95_latency_ms": 620.0,
+      "p99_latency_ms": 850.0,
+      "throughput_rps": 420.0,
+      "error_rate_pct": 2.8,
+      "cpu_utilization_pct": 85.0,
+      "memory_utilization_pct": 78.0,
+      "queue_depth": 45
+    },
+    "cost": {
+      "hourly_compute_cost_usd": 0.12
+    },
+    "security": {
+      "failed_auth_attempts_per_min": 2,
+      "anomalous_ip_request_rate": 0.05
+    },
+    "scaling": {
+      "current_replica_count": 2,
+      "cold_start_time_ms": 0
+    },
+    "recovery": {
+      "restart_count": 0,
+      "health_check_failure_rate_pct": 1.2
+    }
+  },
+  "fast_path_match": {
+    "found": false,
+    "matched_genome_id": null,
+    "similarity": 0.0
+  }
+}

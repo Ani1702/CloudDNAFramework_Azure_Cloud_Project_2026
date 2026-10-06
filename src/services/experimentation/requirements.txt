@@ -1,0 +1,13 @@
+# Core Azure Functions
+azure-functions==1.18.0
+azure-identity==1.15.0
+
+# Basic dependencies for initial deployment
+requests==2.31.0
+
+# Will add more dependencies after initial deployment works:
+# optuna==3.6.1
+# azure-cosmos==4.5.1
+# azure-eventhub==5.11.6
+# kubernetes==29.0.0
+# numpy==1.26.4

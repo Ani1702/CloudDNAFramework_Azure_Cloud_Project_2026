@@ -1,44 +1,79 @@
-# pyrefly: ignore [missing-import]
-from azure.cosmos import CosmosClient
-import os, json
-from .ewma_mad import MetricBaseline
+from typing import Dict, Any, Optional, Tuple
+import logging
+from datetime import datetime
+from .ewma_mad import EWMAMADCalculator
+
+logger = logging.getLogger("clouddna.baseline")
+
 
 class CosmosBaselineStore:
-    def __init__(self):
-        client = CosmosClient.from_connection_string(os.environ["COSMOS_CONN_STR"])
-        self.container = client.get_database_client("clouddna").get_container_client("baselines")
+    def __init__(self, cosmos_client: Optional[Any] = None, database_name: str = "clouddna", container_name: str = "baselines"):
+        self.calculator = EWMAMADCalculator()
+        self.container = None
+        self._memory_cache: Dict[str, Dict[str, Any]] = {}
 
-    def _id(self, app_id, metric, hour): return f"{app_id}:{metric}:{hour}"
+        if cosmos_client is not None:
+            try:
+                self.container = cosmos_client.get_database_client(database_name).get_container_client(container_name)
+                logger.info("CosmosBaselineStore connected to container: %s", container_name)
+            except Exception as e:
+                logger.warning("Could not connect to Cosmos DB (%s). Using local in-memory store.", e)
+        else:
+            logger.info("CosmosBaselineStore running in local in-memory mode.")
 
-    def _load(self, app_id, metric, hour) -> MetricBaseline:
-        try:
-            item = self.container.read_item(self._id(app_id, metric, hour), partition_key=app_id)
-            mb = MetricBaseline(ewma=item["ewma"])
-            mb.recent_values.extend(item["recent_values"])
-            return mb
-        except Exception:
-            return MetricBaseline()
+    def _get_key(self, app_id: str, metric: str, hour: int) -> str:
+        return f"{app_id}_{metric}_{hour}"
 
-    def update(self, app_id, metric, hour_of_day, value):
-        # 1) per-hour bucket — exists so the schema genuinely has hour-of-day
-        #    data in it, for the report/demo
-        self._update_bucket(app_id, metric, hour_of_day, value)
+    def get_baseline(self, app_id: str, metric: str, hour: int) -> Tuple[float, float, int]:
+        key = self._get_key(app_id, metric, hour)
+        if key in self._memory_cache:
+            item = self._memory_cache[key]
+            return item["ewma"], item["mad"], item["sample_count"]
 
-        # 2) pooled bucket — this is what deviation scoring reads from.
-        #    Fed sequentially, every window, so EWMA's recency-weighting
-        #    is still meaningful here (unlike if we tried to merge the
-        #    24 buckets after the fact, which would scramble time order).
-        self._update_bucket(app_id, metric, "ALL", value)
+        if self.container:
+            try:
+                item = self.container.read_item(item=key, partition_key=app_id)
+                self._memory_cache[key] = item
+                return item.get("ewma", 0.0), item.get("mad", 0.0), item.get("sample_count", 0)
+            except Exception:
+                pass
 
-    def _update_bucket(self, app_id, metric, hour_of_day, value):
-        mb = self._load(app_id, metric, hour_of_day)
-        mb.update(value)
-        self.container.upsert_item({
-            "id": self._id(app_id, metric, hour_of_day), "app_id": app_id,
-            "metric": metric, "hour_of_day": hour_of_day,
-            "ewma": mb.ewma, "recent_values": list(mb.recent_values),
-        })
+        return 0.0, 0.0, 0
 
-    def get(self, app_id, metric, hour_of_day) -> MetricBaseline | None:
-        mb = self._load(app_id, metric, hour_of_day)
-        return mb if mb.ewma is not None else None
+    def update(self, app_id: str, metric: str, hour: int, current_val: float) -> Tuple[float, float, int]:
+        key = self._get_key(app_id, metric, hour)
+        prior_ewma, prior_mad, count = self.get_baseline(app_id, metric, hour)
+
+        new_ewma, new_mad, new_count = self.calculator.update_baseline(
+            current_val=current_val,
+            prior_ewma=prior_ewma,
+            prior_mad=prior_mad,
+            sample_count=count,
+        )
+
+        record = {
+            "id": key,
+            "app_id": app_id,
+            "metric": metric,
+            "hour": hour,
+            "ewma": round(new_ewma, 4),
+            "mad": round(new_mad, 4),
+            "sample_count": new_count,
+            "last_updated": datetime.utcnow().isoformat() + "Z",
+        }
+
+        self._memory_cache[key] = record
+
+        if self.container:
+            try:
+                self.container.upsert_item(record)
+            except Exception as e:
+                logger.error("Failed to upsert baseline into Cosmos DB: %s", e)
+
+        return new_ewma, new_mad, new_count
+
+    def compute_zscore(self, app_id: str, metric: str, hour: int, current_val: float) -> float:
+        ewma, mad, count = self.get_baseline(app_id, metric, hour)
+        if count < 3:
+            return 0.0
+        return self.calculator.compute_robust_zscore(current_val, ewma, mad)

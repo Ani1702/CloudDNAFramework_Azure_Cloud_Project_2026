@@ -127,6 +127,7 @@ class EvaluationCoordinator:
                 
                 metrics = candidate_metrics.get(candidate_id, {})
                 
+                # Create evaluation result in EXACT specification format
                 evaluation_result = {
                     "trigger_id": trigger_id,
                     "candidate_id": candidate_id,
@@ -134,8 +135,7 @@ class EvaluationCoordinator:
                     "generation_method": candidate['generation_method'],
                     "readiness_ts": deployment['readiness_ts'],
                     "raw_metrics": self._enrich_metrics_with_cost_and_scaling(metrics, candidate['genome']),
-                    "security_probe_results": metrics.get('security_probe_results', {}),
-                    "evaluation_completed_at": datetime.utcnow().isoformat() + "Z"
+                    "security_probe_results": self._format_security_probe_results(metrics.get('security_probe_results', {}))
                 }
                 
                 evaluation_results.append(evaluation_result)
@@ -330,6 +330,38 @@ class EvaluationCoordinator:
         return {
             "restart_count": 0,  # Would track actual restarts during evaluation
             "health_check_failure_rate_pct": min(error_rate_pct, 10.0)  # Cap at 10%
+        }
+    
+    def _format_security_probe_results(self, security_results: Dict[str, Any]) -> Dict[str, Any]:
+        """Format security probe results to match exact specification"""
+        
+        # Extract auth brute force result
+        auth_bruteforce_blocked = False
+        if 'auth_bruteforce' in security_results:
+            auth_result = security_results['auth_bruteforce']
+            # Consider blocked if success rate > 80%
+            auth_bruteforce_blocked = auth_result.get('success_rate', 0) > 0.8
+        
+        # Calculate malformed request 5xx rate
+        malformed_req_5xx_rate = 0.0
+        malformed_probes = ['sql_injection', 'xss_attempt', 'path_traversal']
+        blocked_count = 0
+        total_probes = 0
+        
+        for probe_name in malformed_probes:
+            if probe_name in security_results:
+                probe_result = security_results[probe_name]
+                if probe_result.get('success_rate', 0) > 0.5:  # More than 50% blocked
+                    blocked_count += 1
+                total_probes += 1
+        
+        if total_probes > 0:
+            malformed_req_5xx_rate = 1.0 - (blocked_count / total_probes)
+        
+        # Return in EXACT specification format
+        return {
+            "auth_bruteforce_blocked": auth_bruteforce_blocked,
+            "malformed_req_5xx_rate": round(malformed_req_5xx_rate, 1)
         }
     
     async def _store_evaluation_results(self, evaluation_results: List[Dict[str, Any]]):

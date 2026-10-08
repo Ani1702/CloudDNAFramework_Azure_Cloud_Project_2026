@@ -1,13 +1,18 @@
-# Core Azure Functions
-azure-functions==1.18.0
-azure-identity==1.15.0
-
-# Basic dependencies for initial deployment
-requests==2.31.0
-
-# Will add more dependencies after initial deployment works:
-# optuna==3.6.1
-# azure-cosmos==4.5.1
-# azure-eventhub==5.11.6
-# kubernetes==29.0.0
-# numpy==1.26.4
+pydantic==2.9.2
+numpy==1.26.4
+pandas==2.0.0
+requests==2.32.3
+azure-functions==1.21.0
+azure-cosmos==4.7.0
+azure-eventgrid==4.20.0
+azure-core==1.32.0
+azure-identity==1.19.0
+azure-keyvault-secrets==4.9.0
+opencensus-ext-azure==1.1.13
+azure-eventhub==5.12.1
+optuna==4.0.0
+azure-mgmt-containerinstance==10.1.0
+pytest==8.3.3
+pytest-mock==3.14.0
+pytest-asyncio==0.21.0
+python-dotenv==1.0.1

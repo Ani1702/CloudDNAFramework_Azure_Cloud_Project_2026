@@ -1,0 +1,71 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: medusa
+  namespace: medusa-prod
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: medusa
+  template:
+    metadata:
+      labels:
+        app: medusa
+    spec:
+      containers:
+        - name: medusa
+          image: acrclouddna.azurecr.io/medusa:latest
+          ports:
+            - containerPort: 9000
+          envFrom:
+            - secretRef:
+                name: medusa-secrets
+          env:
+            - name: NODE_ENV
+              value: production
+
+        - name: traffic-mirror
+          image: node:22-alpine
+          command:
+            - sh
+            - -c
+            - |
+              yarn add @azure/event-hubs && node -e "
+              const { EventHubProducerClient } = require('@azure/event-hubs');
+              const http = require('http');
+              const producer = new EventHubProducerClient(process.env.EVENTHUB_CONNECTION_STRING, 'traffic-mirror');
+              const server = http.createServer(async (req, res) => {
+                const chunks = [];
+                req.on('data', c => chunks.push(c));
+                req.on('end', async () => {
+                  const body = Buffer.concat(chunks).toString();
+                  const event = { method: req.method, url: req.url, headers: req.headers, body, timestamp: new Date().toISOString() };
+                  try {
+                    const batch = await producer.createBatch();
+                    batch.tryAdd({ body: event });
+                    await producer.sendBatch(batch);
+                  } catch(e) { console.error('EH error:', e.message); }
+                  res.end('ok');
+                });
+              });
+              server.listen(9001, () => console.log('Mirror sidecar listening on 9001'));
+              "
+          envFrom:
+            - secretRef:
+                name: medusa-secrets
+          ports:
+            - containerPort: 9001
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: medusa
+  namespace: medusa-prod
+spec:
+  selector:
+    app: medusa
+  ports:
+    - port: 80
+      targetPort: 9000
+  type: LoadBalancer

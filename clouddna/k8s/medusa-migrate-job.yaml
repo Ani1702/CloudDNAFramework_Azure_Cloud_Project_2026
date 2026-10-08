@@ -1,0 +1,19 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: medusa-migrate
+  namespace: medusa-prod
+spec:
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: medusa-migrate
+          image: acrclouddna.azurecr.io/medusa:latest
+          command: ["node", "node_modules/@medusajs/cli/cli.js", "db:migrate"]
+          envFrom:
+            - secretRef:
+                name: medusa-secrets
+          env:
+            - name: NODE_ENV
+              value: production

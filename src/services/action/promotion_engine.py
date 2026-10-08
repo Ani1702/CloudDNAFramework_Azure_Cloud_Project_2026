@@ -2,7 +2,7 @@ from typing import Dict, Any, Optional
 import logging
 from datetime import datetime
 
-from ..llm.nemotron_client import NemotronLLMClient
+from llm.nemotron_client import NemotronLLMClient
 
 logger = logging.getLogger("clouddna.promotion")
 

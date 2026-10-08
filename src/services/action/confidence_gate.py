@@ -5,7 +5,7 @@ logger = logging.getLogger("clouddna.confidence_gate")
 
 
 class ConfidenceGate:
-    def __init__(self, min_confidence_margin: float = 0.15):
+    def __init__(self, min_confidence_margin: float = 0.020):
         self.min_confidence_margin = min_confidence_margin
 
     def evaluate(

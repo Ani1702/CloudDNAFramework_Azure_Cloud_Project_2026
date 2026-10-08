@@ -90,7 +90,9 @@ class FitnessEvaluator:
             hourly_cost = replicas * (cpu * 0.045)
 
         hourly_cost = float(hourly_cost)
-        cost_score = max(0.0, min(1.0, 1.0 - (hourly_cost / 0.50)))
+        # Use $1.50/hr as the realistic ceiling for multi-replica ACI configs;
+        # the old $0.50 ceiling caused most candidates to score 0.0 (no differentiation).
+        cost_score = max(0.0, min(1.0, 1.0 - (hourly_cost / 1.50)))
         return round(cost_score, 3)
 
     def score_security(self, security_probes: Dict[str, Any]) -> float:
@@ -105,7 +107,10 @@ class FitnessEvaluator:
 
     def score_scaling(self, raw_metrics: Dict[str, Any]) -> float:
         cold_start_ms = float(raw_metrics.get("cold_start_time_ms", 0.0))
-        s_scale = max(0.0, min(1.0, 1.0 - (cold_start_ms / 500.0)))
+        # Normalize against 30,000ms (30 seconds) — realistic max for ACI cold provisioning.
+        # The old 500ms ceiling made every simulated candidate score exactly 0.0 since
+        # ACI cold starts are 5-30 seconds, giving no differentiation between candidates.
+        s_scale = max(0.0, min(1.0, 1.0 - (cold_start_ms / 30_000.0)))
         return round(s_scale, 3)
 
     def score_recovery(self, raw_metrics: Dict[str, Any]) -> float:

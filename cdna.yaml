@@ -1,0 +1,99 @@
+app_id: medusa
+owner: member-1
+
+deployment:
+  platform: aks
+  namespace: medusa-prod
+  deployment_name: medusa-api
+  container_registry_image: acrclouddna.azurecr.io/medusa:latest
+
+telemetry:
+  source: app_insights
+  instrumentation_key: ${APP_INSIGHTS_KEY}
+  traffic_mirror:
+    method: sidecar_proxy
+    event_hub_name: medusa-traffic-mirror
+
+tunable_parameters:
+  - name: replica_count
+    type: int
+    min: 1
+    max: 10
+    default: 2
+    restart_required: false
+
+  - name: cpu_cores
+    type: float
+    min: 0.25
+    max: 2.0
+    default: 1.0
+    restart_required: true
+
+  - name: memory_gb
+    type: float
+    min: 0.5
+    max: 4.0
+    default: 1.0
+    restart_required: true
+
+  - name: node_thread_pool_size
+    type: int
+    min: 4
+    max: 128
+    default: 20
+    restart_required: true
+
+  - name: redis_cache_enabled
+    type: bool
+    default: false
+    restart_required: true
+
+  - name: redis_cache_ttl_seconds
+    type: int
+    min: 0
+    max: 3600
+    default: 0
+    restart_required: false
+
+  - name: db_connection_pool_max
+    type: int
+    min: 5
+    max: 100
+    default: 10
+    restart_required: true
+
+  - name: rate_limiting_enabled
+    type: bool
+    default: false
+    restart_required: true
+
+  - name: rate_limit_rps
+    type: int
+    min: 10
+    max: 1000
+    default: 100
+    restart_required: false
+
+  - name: health_check_timeout_sec
+    type: int
+    min: 1
+    max: 10
+    default: 2
+    restart_required: false
+
+fitness_weights_override:
+  TRAFFIC_SPIKE:
+    performance: 0.5
+    cost: 0.15
+    security: 0.1
+    scaling: 0.2
+    recovery: 0.05
+
+sandbox:
+  shadow_replica_min: 0
+  max_concurrent_candidates: 4
+  evaluation_window_sec: 90
+
+promotion_policy:
+  mode: auto
+  min_confidence_margin: 0.15

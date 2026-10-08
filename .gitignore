@@ -1,0 +1,63 @@
+# ---- Secrets —-----
+
+local.settings.json
+.env
+*.pem
+*.key
+azure-credentials.json
+
+# ---- Python ----
+
+**pycache**/
+*.py[cod]
+*.egg-info/
+.eggs/
+.venv/
+venv/
+env/
+*.log
+
+# ---- Python build / distribution ----
+
+build/
+dist/
+*.egg
+*.manifest
+
+# ---- Azure Functions local runtime ----
+
+bin/
+obj/
+.python_packages/
+func_extensions/
+
+# ---- Azure / Bicep ----
+
+*.bicep.json
+.azure/
+
+# ---- Testing / coverage ----
+
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.nox/
+.mypy_cache/
+.ruff_cache/
+
+# ---- Jupyter ----
+
+.ipynb_checkpoints/
+
+# ---- Editor / OS junk ----
+
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# ---- k6 / load test output ----
+
+*.summary.json

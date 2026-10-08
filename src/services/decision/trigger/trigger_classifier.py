@@ -1,5 +1,6 @@
 from typing import Dict, Any, List, Set
-from ...shared.schema.decision_models import TriggerCategory, SeverityLevel
+# pyrefly: ignore [missing-import]
+from models.decision_models import TriggerCategory, SeverityLevel
 
 
 def classify(confirmed_domains: Set[str], window: Dict[str, Any]) -> TriggerCategory:

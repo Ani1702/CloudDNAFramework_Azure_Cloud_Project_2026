@@ -1,0 +1,165 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "CloudDNATelemetryWindows",
+  "description": "Schema for CloudDNA 10-second aggregated telemetry metrics array",
+  "type": "array",
+  "items": {
+    "type": "object",
+    "required": [
+      "app_id",
+      "ts",
+      "window_sec",
+      "performance",
+      "cost",
+      "security",
+      "scaling",
+      "recovery"
+    ],
+    "properties": {
+      "app_id": {
+        "type": "string",
+        "example": "medusa"
+      },
+      "ts": {
+        "type": "string",
+        "format": "date-time",
+        "example": "2026-08-22T19:59:40Z"
+      },
+      "window_sec": {
+        "type": "integer",
+        "minimum": 1,
+        "default": 10,
+        "example": 10
+      },
+      "performance": {
+        "type": "object",
+        "required": [
+          "p50_latency_ms",
+          "p95_latency_ms",
+          "p99_latency_ms",
+          "throughput_rps",
+          "error_rate_pct",
+          "cpu_utilization_pct",
+          "memory_utilization_pct",
+          "queue_depth"
+        ],
+        "properties": {
+          "p50_latency_ms": {
+            "type": "number",
+            "minimum": 0,
+            "example": 175
+          },
+          "p95_latency_ms": {
+            "type": "number",
+            "minimum": 0,
+            "example": 400
+          },
+          "p99_latency_ms": {
+            "type": "number",
+            "minimum": 0,
+            "example": 580
+          },
+          "throughput_rps": {
+            "type": "number",
+            "minimum": 0,
+            "example": 300
+          },
+          "error_rate_pct": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 100,
+            "example": 1.0
+          },
+          "cpu_utilization_pct": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 100,
+            "example": 58
+          },
+          "memory_utilization_pct": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 100,
+            "example": 53
+          },
+          "queue_depth": {
+            "type": "integer",
+            "minimum": 0,
+            "example": 10
+          }
+        }
+      },
+      "cost": {
+        "type": "object",
+        "required": [
+          "hourly_compute_cost_usd"
+        ],
+        "properties": {
+          "hourly_compute_cost_usd": {
+            "type": "number",
+            "minimum": 0,
+            "example": 0.09
+          }
+        }
+      },
+      "security": {
+        "type": "object",
+        "required": [
+          "failed_auth_attempts_per_min",
+          "anomalous_ip_request_rate"
+        ],
+        "properties": {
+          "failed_auth_attempts_per_min": {
+            "type": "number",
+            "minimum": 0,
+            "example": 0
+          },
+          "anomalous_ip_request_rate": {
+            "type": "number",
+            "minimum": 0,
+            "example": 0.0
+          }
+        }
+      },
+      "scaling": {
+        "type": "object",
+        "required": [
+          "current_replica_count",
+          "cold_start_time_ms"
+        ],
+        "properties": {
+          "current_replica_count": {
+            "type": "integer",
+            "minimum": 1,
+            "example": 2
+          },
+          "cold_start_time_ms": {
+            "type": "number",
+            "minimum": 0,
+            "example": 0
+          }
+        }
+      },
+      "recovery": {
+        "type": "object",
+        "required": [
+          "restart_count",
+          "health_check_failure_rate_pct"
+        ],
+        "properties": {
+          "restart_count": {
+            "type": "integer",
+            "minimum": 0,
+            "example": 0
+          },
+          "health_check_failure_rate_pct": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 100,
+            "example": 0.0
+          }
+        }
+      }
+    }
+  }
+}
